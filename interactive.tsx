@@ -41,7 +41,7 @@ export default function Component() {
     resetHighScores,
   } = useHighScore()
 
-  // Emoji sets for different difficulty levels
+  // Expanded emoji sets for higher levels
   const emojiSets = {
     1: ["🌞", "🌈", "🍕", "🚀", "🐶", "⚽", "🎉", "🎸"],
     2: ["🌞", "🌈", "🍕", "🚀", "🐶", "⚽", "🎉", "🎸", "🎭", "🎨", "🎪", "🎯"],
@@ -71,6 +71,18 @@ export default function Component() {
       "🏀",
       "⚾",
       "🎾",
+      "🎳",
+      "🎿",
+      "🏊",
+      "🏃",
+      "🚴",
+      "🏋️",
+      "🤸",
+      "🧘",
+      "🏌️",
+      "🏄",
+      "🚣",
+      "🏇",
     ],
     5: [
       "🌞",
@@ -103,20 +115,53 @@ export default function Component() {
       "🏃",
       "🚴",
       "🏋️",
+      "🤸",
+      "🧘",
+      "🏌️",
+      "🏄",
+      "🚣",
+      "🏇",
+      "🍎",
+      "🍌",
+      "🍇",
+      "🍓",
+      "🍒",
+      "🍑",
+      "🥝",
+      "🍍",
+      "🥭",
+      "🍊",
+      "🍋",
+      "🍈",
+      "🍉",
+      "🥥",
+      "🥑",
+      "🍆",
+      "🥒",
+      "🥬",
     ],
   }
 
-  // Get grid size and timer based on level - Updated progression
+  // Updated level progression as specified
   const getGameConfig = (currentLevel) => {
     const configs = {
-      1: { gridSize: 4, timer: 60, pairs: 8 }, // 4×4 grid, 8 pairs, 60 seconds
-      2: { gridSize: 6, timer: 60, pairs: 12 }, // 6×4 grid (12 pairs), 60 seconds
-      3: { gridSize: 6, timer: 60, pairs: 18 }, // 6×6 grid, 18 pairs, 60 seconds
-      4: { gridSize: 6, timer: 60, pairs: 24 }, // 6×6 grid, 24 pairs, 60 seconds
-      5: { gridSize: 6, timer: 60, pairs: 30 }, // 6×6 grid, 30 pairs, 60 seconds
+      1: { gridSize: 4, timer: 60, pairs: 8, gridDisplay: "4×4" },
+      2: { gridSize: 4, timer: 45, pairs: 8, gridDisplay: "4×4" },
+      3: { gridSize: 4, timer: 30, pairs: 8, gridDisplay: "4×4" },
+      4: { gridSize: 8, timer: 60, pairs: 24, gridDisplay: "6×4" }, // 8×6 grid to fit 24 pairs (48 cards)
+      5: { gridSize: 8, timer: 45, pairs: 24, gridDisplay: "6×4" },
+      6: { gridSize: 8, timer: 30, pairs: 24, gridDisplay: "6×4" },
+      7: { gridSize: 6, timer: 45, pairs: 18, gridDisplay: "6×4" }, // 6×6 grid for 18 pairs (36 cards)
+      8: { gridSize: 6, timer: 30, pairs: 12, gridDisplay: "6×4" }, // 6×4 grid for 12 pairs (24 cards)
+      9: { gridSize: 9, timer: 60, pairs: 36, gridDisplay: "6×6" }, // 9×8 grid for 36 pairs (72 cards)
+      10: { gridSize: 9, timer: 45, pairs: 36, gridDisplay: "6×6" },
+      11: { gridSize: 9, timer: 30, pairs: 36, gridDisplay: "6×6" },
     }
-    // For levels 5+, use the same config as level 5
-    return configs[currentLevel] || configs[5]
+
+    // For level 12+, use this config
+    const defaultConfig = { gridSize: 8, timer: 45, pairs: 30, gridDisplay: "6×6" }
+
+    return configs[currentLevel] || defaultConfig
   }
 
   const initializeGame = useCallback((currentLevel) => {
@@ -124,7 +169,17 @@ export default function Component() {
     setIsLevelTransition(false) // Reset transition flag
     setShowConfetti(false) // Reset confetti
     const config = getGameConfig(currentLevel)
-    const availableEmojis = emojiSets[Math.min(currentLevel, 5)] || emojiSets[5]
+
+    // Get appropriate emoji set based on level
+    let availableEmojis
+    if (currentLevel <= 3) {
+      availableEmojis = emojiSets[1] || emojiSets[1]
+    } else if (currentLevel <= 6) {
+      availableEmojis = emojiSets[4] || emojiSets[4]
+    } else {
+      availableEmojis = emojiSets[5] || emojiSets[5]
+    }
+
     const selectedEmojis = availableEmojis.slice(0, config.pairs)
 
     const gameCards = selectedEmojis
@@ -276,7 +331,16 @@ export default function Component() {
   }
 
   const config = getGameConfig(level)
-  const gridCols = config.gridSize === 4 ? "grid-cols-4" : "grid-cols-6"
+
+  // Determine grid CSS class based on actual grid size needed
+  const getGridClass = () => {
+    if (config.gridSize <= 4) return "grid-cols-4"
+    if (config.gridSize <= 6) return "grid-cols-6"
+    if (config.gridSize <= 8) return "grid-cols-8"
+    return "grid-cols-9"
+  }
+
+  const gridCols = getGridClass()
   const isGameWon = matchedPairs === totalPairs && totalPairs > 0
   const isGameLost = timeLeft === 0 && !isGameWon && shuffleComplete && gameStarted
   const bestTimeForCurrentLevel = getBestTimeForLevel(level)
@@ -286,7 +350,7 @@ export default function Component() {
       {/* Confetti Component */}
       <Confetti active={showConfetti} onComplete={() => setShowConfetti(false)} />
 
-      <Card className="w-full max-w-4xl">
+      <Card className="w-full max-w-5xl">
         <CardHeader className="text-center">
           <div className="flex flex-col items-center gap-4">
             <MemoryRushLogo size={56} />
@@ -321,39 +385,38 @@ export default function Component() {
           <div className="flex items-center justify-center gap-3 mb-4">
             <div className="text-center text-sm text-muted-foreground">
               <p className="font-medium">
-                Level {level}: {level === 2 ? "6×4" : `${config.gridSize}×${config.gridSize}`} grid • {totalPairs} pairs
-                • {config.timer}s timer
+                Level {level}: {config.gridDisplay} grid • {totalPairs} pairs • {config.timer}s timer
               </p>
             </div>
             <div className="flex items-center gap-2">
               {(() => {
                 const getDifficultyLevel = () => {
-                  if (level === 1)
+                  if (level <= 3)
                     return {
                       name: "Beginner",
                       color: "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200",
                       icon: "🌱",
                     }
-                  if (level === 2)
+                  if (level <= 6)
                     return {
-                      name: "Easy",
+                      name: "Intermediate",
                       color: "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200",
                       icon: "🎯",
                     }
-                  if (level === 3)
+                  if (level <= 8)
                     return {
-                      name: "Medium",
+                      name: "Advanced",
                       color: "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200",
                       icon: "⚡",
                     }
-                  if (level === 4)
+                  if (level <= 11)
                     return {
-                      name: "Hard",
+                      name: "Expert",
                       color: "bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200",
                       icon: "🔥",
                     }
                   return {
-                    name: "Expert",
+                    name: "Master",
                     color: "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200",
                     icon: "💀",
                   }
@@ -498,7 +561,7 @@ export default function Component() {
           )}
 
           <div
-            className={`grid ${gridCols} gap-3 justify-center max-w-2xl mx-auto ${shuffleComplete ? "grid-fade-in" : ""}`}
+            className={`grid ${gridCols} gap-2 justify-center max-w-4xl mx-auto ${shuffleComplete ? "grid-fade-in" : ""}`}
           >
             {cards.map((card, index) => (
               <FlipCard
