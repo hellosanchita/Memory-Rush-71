@@ -12,7 +12,6 @@ import { Leaderboard } from "./components/leaderboard"
 import { CountdownProgress } from "./components/countdown-progress"
 import { FlipCard } from "./components/flip-card"
 import { SocialShare } from "./components/social-share"
-import { DifficultyIndicator } from "./components/difficulty-indicator"
 
 export default function Component() {
   const [level, setLevel] = useState(1)
@@ -25,6 +24,7 @@ export default function Component() {
   const [wrongMatchCards, setWrongMatchCards] = useState([])
   const [isShuffling, setIsShuffling] = useState(false)
   const [shuffleComplete, setShuffleComplete] = useState(false)
+  const [isLevelTransition, setIsLevelTransition] = useState(false)
 
   const { playSound, isMuted, toggleMute, initializeAudio } = useAudio()
 
@@ -117,6 +117,8 @@ export default function Component() {
   }
 
   const initializeGame = useCallback((currentLevel) => {
+    console.log("Initializing game for level", currentLevel)
+    setIsLevelTransition(false) // Reset transition flag
     const config = getGameConfig(currentLevel)
     const availableEmojis = emojiSets[Math.min(currentLevel, 5)] || emojiSets[5]
     const selectedEmojis = availableEmojis.slice(0, config.pairs)
@@ -147,8 +149,11 @@ export default function Component() {
     setTimeout(() => {
       setIsShuffling(false)
       setShuffleComplete(true)
-      setGameActive(true)
-      console.log("Shuffle complete, game active") // Debug log
+      // Add a small delay before activating the game to prevent race conditions
+      setTimeout(() => {
+        setGameActive(true)
+        console.log("Game active for level", currentLevel)
+      }, 100)
     }, shuffleDuration)
   }, [])
 
@@ -173,8 +178,9 @@ export default function Component() {
 
   // Check for level completion
   useEffect(() => {
-    if (matchedPairs === totalPairs && totalPairs > 0) {
+    if (matchedPairs === totalPairs && totalPairs > 0 && !isLevelTransition) {
       setGameActive(false)
+      setIsLevelTransition(true) // Prevent multiple level advances
       playSound("levelComplete")
 
       // Update high scores - record the level that was just completed
@@ -188,9 +194,12 @@ export default function Component() {
 
       // Auto-advance to next level after a short delay
       setTimeout(() => {
-        setLevel((prev) => prev + 1)
-        console.log("Advancing from level", level, "to level", level + 1) // Debug log
-      }, 1500)
+        setLevel((prev) => {
+          const nextLevel = prev + 1
+          console.log("Advancing from level", prev, "to level", nextLevel)
+          return nextLevel
+        })
+      }, 2000)
     }
   }, [
     matchedPairs,
@@ -201,6 +210,7 @@ export default function Component() {
     updateLevelTime,
     updateHighestLevel,
     highScore.highestLevel,
+    isLevelTransition,
   ])
 
   // Initialize audio on component mount
@@ -269,15 +279,77 @@ export default function Component() {
             </p>
           </div>
 
-          {/* Difficulty Indicator */}
-          <div className="mb-4">
-            <DifficultyIndicator
-              level={level}
-              gridSize={config.gridSize}
-              pairs={config.pairs}
-              timer={config.timer}
-              className="max-w-md mx-auto"
+          {/* Game Controls and Level Info - Moved to top */}
+          <div className="flex justify-center gap-4 flex-wrap mb-4">
+            <Button onClick={handleReset} variant="outline" disabled={isShuffling}>
+              Reset Game
+            </Button>
+            {!gameActive && !isGameWon && shuffleComplete && (
+              <Button onClick={() => initializeGame(level)}>Try Again</Button>
+            )}
+            <Leaderboard currentHighScore={highScore} />
+            <SocialShare
+              shareData={{
+                level: highScore.highestLevel,
+                gamesPlayed: highScore.totalGamesPlayed,
+              }}
+              shareType="general"
             />
+            <Button onClick={resetHighScores} variant="ghost" size="sm" className="text-muted-foreground">
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Reset Scores
+            </Button>
+          </div>
+
+          {/* Level Details with Visual Difficulty - Moved to top */}
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <div className="text-center text-sm text-muted-foreground">
+              <p className="font-medium">
+                Level {level}: {config.gridSize}×{config.gridSize} grid • {totalPairs} pairs • {config.timer}s timer
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {(() => {
+                const getDifficultyLevel = () => {
+                  if (level === 1)
+                    return {
+                      name: "Beginner",
+                      color: "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200",
+                      icon: "🌱",
+                    }
+                  if (level === 2)
+                    return {
+                      name: "Easy",
+                      color: "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200",
+                      icon: "🎯",
+                    }
+                  if (level === 3)
+                    return {
+                      name: "Medium",
+                      color: "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200",
+                      icon: "⚡",
+                    }
+                  if (level === 4)
+                    return {
+                      name: "Hard",
+                      color: "bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200",
+                      icon: "🔥",
+                    }
+                  return {
+                    name: "Expert",
+                    color: "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200",
+                    icon: "💀",
+                  }
+                }
+                const difficulty = getDifficultyLevel()
+                return (
+                  <>
+                    <span className="text-lg">{difficulty.icon}</span>
+                    <Badge className={`${difficulty.color} border-0 font-semibold text-xs`}>{difficulty.name}</Badge>
+                  </>
+                )
+              })()}
+            </div>
           </div>
 
           {/* High Score Display */}
@@ -382,7 +454,10 @@ export default function Component() {
             <div className="text-center p-4 bg-red-100 dark:bg-red-900 rounded-lg">
               <h2 className="text-2xl font-bold text-red-800 dark:text-red-200">Game Over! ⏰</h2>
               <p className="text-red-600 dark:text-red-300">Time's up! Try again to beat Level {level}.</p>
-              <div className="mt-3">
+              <div className="mt-3 flex justify-center gap-2">
+                <Button onClick={() => initializeGame(level)} variant="default" size="sm">
+                  Try Again
+                </Button>
                 <SocialShare
                   shareData={{
                     level: highScore.highestLevel,
@@ -416,33 +491,6 @@ export default function Component() {
                 isShuffling={isShuffling}
               />
             ))}
-          </div>
-
-          <div className="flex justify-center gap-4 flex-wrap">
-            <Button onClick={handleReset} variant="outline" disabled={isShuffling}>
-              Reset Game
-            </Button>
-            {!gameActive && !isGameWon && shuffleComplete && (
-              <Button onClick={() => initializeGame(level)}>Try Again</Button>
-            )}
-            <Leaderboard currentHighScore={highScore} />
-            <SocialShare
-              shareData={{
-                level: highScore.highestLevel,
-                gamesPlayed: highScore.totalGamesPlayed,
-              }}
-              shareType="general"
-            />
-            <Button onClick={resetHighScores} variant="ghost" size="sm" className="text-muted-foreground">
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Reset Scores
-            </Button>
-          </div>
-
-          <div className="text-center text-sm text-muted-foreground">
-            <p>
-              Level {level}: {config.gridSize}×{config.gridSize} grid • {totalPairs} pairs • {config.timer}s timer
-            </p>
           </div>
         </CardContent>
       </Card>
