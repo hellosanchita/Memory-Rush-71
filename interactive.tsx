@@ -6,13 +6,13 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useAudio } from "./hooks/use-audio"
 import { useHighScore } from "./hooks/use-high-score"
-import { Volume2, VolumeX, Music, MicOffIcon as MusicOff, Trophy, RotateCcw, Share2 } from "lucide-react"
+import { Volume2, VolumeX, Trophy, RotateCcw, Share2 } from "lucide-react"
 import { MemoryRushLogo } from "./components/memory-rush-logo"
 import { Leaderboard } from "./components/leaderboard"
 import { CountdownProgress } from "./components/countdown-progress"
 import { FlipCard } from "./components/flip-card"
-import { MusicSelector } from "./components/music-selector"
 import { SocialShare } from "./components/social-share"
+import { DifficultyIndicator } from "./components/difficulty-indicator"
 
 export default function Component() {
   const [level, setLevel] = useState(1)
@@ -26,19 +26,7 @@ export default function Component() {
   const [isShuffling, setIsShuffling] = useState(false)
   const [shuffleComplete, setShuffleComplete] = useState(false)
 
-  const {
-    playSound,
-    isMuted,
-    toggleMute,
-    isMusicMuted,
-    toggleMusicMute,
-    startBackgroundMusic,
-    stopBackgroundMusic,
-    initializeAudio,
-    currentMusicType,
-    changeMusicType,
-    isMusicPlaying,
-  } = useAudio()
+  const { playSound, isMuted, toggleMute, initializeAudio } = useAudio()
 
   const {
     highScore,
@@ -115,15 +103,16 @@ export default function Component() {
     ],
   }
 
-  // Get grid size and timer based on level
+  // Get grid size and timer based on level - Updated progression
   const getGameConfig = (currentLevel) => {
     const configs = {
-      1: { gridSize: 4, timer: 60, pairs: 8 },
-      2: { gridSize: 4, timer: 50, pairs: 12 },
-      3: { gridSize: 6, timer: 45, pairs: 18 },
-      4: { gridSize: 6, timer: 40, pairs: 24 },
-      5: { gridSize: 6, timer: 35, pairs: 30 },
+      1: { gridSize: 4, timer: 60, pairs: 8 }, // 4×4 grid, 8 pairs, 60 seconds
+      2: { gridSize: 4, timer: 50, pairs: 12 }, // 4×4 grid, 12 pairs, 50 seconds
+      3: { gridSize: 6, timer: 45, pairs: 18 }, // 6×6 grid, 18 pairs, 45 seconds
+      4: { gridSize: 6, timer: 40, pairs: 24 }, // 6×6 grid, 24 pairs, 40 seconds
+      5: { gridSize: 6, timer: 35, pairs: 30 }, // 6×6 grid, 30 pairs, 35 seconds
     }
+    // For levels 5+, use the same config as level 5
     return configs[currentLevel] || configs[5]
   }
 
@@ -219,15 +208,6 @@ export default function Component() {
     initializeAudio()
   }, [initializeAudio])
 
-  // Handle background music based on game state
-  useEffect(() => {
-    if (gameActive && shuffleComplete && !isMusicMuted) {
-      startBackgroundMusic()
-    } else {
-      stopBackgroundMusic()
-    }
-  }, [gameActive, shuffleComplete, isMusicMuted, startBackgroundMusic, stopBackgroundMusic])
-
   const handleCardClick = (card) => {
     console.log("Card clicked:", card.emoji, "Game active:", gameActive, "Shuffle complete:", shuffleComplete) // Debug log
 
@@ -289,6 +269,17 @@ export default function Component() {
             </p>
           </div>
 
+          {/* Difficulty Indicator */}
+          <div className="mb-4">
+            <DifficultyIndicator
+              level={level}
+              gridSize={config.gridSize}
+              pairs={config.pairs}
+              timer={config.timer}
+              className="max-w-md mx-auto"
+            />
+          </div>
+
           {/* High Score Display */}
           <div className="flex justify-center gap-4 mb-4">
             <Badge variant="secondary" className="flex items-center gap-2">
@@ -333,21 +324,6 @@ export default function Component() {
               >
                 {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={toggleMusicMute}
-                title={isMusicMuted ? "Unmute background music" : "Mute background music"}
-              >
-                {isMusicMuted ? <MusicOff className="h-5 w-5" /> : <Music className="h-5 w-5" />}
-              </Button>
-              <MusicSelector
-                currentMusicType={currentMusicType}
-                onMusicChange={changeMusicType}
-                isMusicPlaying={isMusicPlaying}
-                isMusicMuted={isMusicMuted}
-                onToggleMusic={toggleMusicMute}
-              />
             </div>
           </div>
 
