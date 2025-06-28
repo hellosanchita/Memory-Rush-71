@@ -13,6 +13,8 @@ import { CountdownProgress } from "./components/countdown-progress"
 import { FlipCard } from "./components/flip-card"
 import { SocialShare } from "./components/social-share"
 import { Confetti } from "./components/confetti"
+import { AnalyticsDashboard } from "./components/analytics-dashboard"
+import { useAnalytics } from "./hooks/use-analytics"
 
 export default function Component() {
   const [level, setLevel] = useState(1)
@@ -40,6 +42,8 @@ export default function Component() {
     getBestTimeForLevel,
     resetHighScores,
   } = useHighScore()
+
+  const { trackLevelComplete, trackGameOver, trackNewGame } = useAnalytics()
 
   // Expanded emoji sets for higher levels
   const emojiSets = {
@@ -164,6 +168,19 @@ export default function Component() {
     return configs[currentLevel] || defaultConfig
   }
 
+  // ⬇️  place this immediately after all hook declarations (before any helper fns or uses)
+  const config = getGameConfig(level)
+
+  // Helper – choose grid columns based on current grid size
+  function getGridClass() {
+    if (config.gridSize <= 4) return "grid-cols-4"
+    if (config.gridSize <= 6) return "grid-cols-6"
+    if (config.gridSize <= 8) return "grid-cols-8"
+    return "grid-cols-9"
+  }
+
+  const gridCols = getGridClass()
+
   const initializeGame = useCallback((currentLevel) => {
     console.log("Initializing game for level", currentLevel)
     setIsLevelTransition(false) // Reset transition flag
@@ -233,8 +250,9 @@ export default function Component() {
       setGameActive(false)
       playSound("gameOver")
       incrementGamesPlayed()
+      trackGameOver(level, getGameConfig(level).timer)
     }
-  }, [timeLeft, gameActive, shuffleComplete, gameStarted, playSound, incrementGamesPlayed])
+  }, [timeLeft, gameActive, shuffleComplete, gameStarted, playSound, incrementGamesPlayed, level, trackGameOver])
 
   // Check for level completion
   useEffect(() => {
@@ -249,6 +267,7 @@ export default function Component() {
       // Update high scores - record the level that was just completed
       const config = getGameConfig(level)
       updateLevelTime(level, timeLeft, config.timer)
+      trackLevelComplete(level, timeLeft, config.timer)
 
       // Only update highest level if this level is higher than previous best
       if (level >= highScore.highestLevel) {
@@ -274,6 +293,7 @@ export default function Component() {
     updateHighestLevel,
     highScore.highestLevel,
     isLevelTransition,
+    trackLevelComplete,
   ])
 
   // Initialize audio on component mount
@@ -322,6 +342,7 @@ export default function Component() {
     setLevel(1)
     initializeGame(1)
     incrementGamesPlayed()
+    trackNewGame(1)
   }
 
   const formatTime = (seconds: number) => {
@@ -330,20 +351,41 @@ export default function Component() {
     return `${mins}:${secs.toString().padStart(2, "0")}`
   }
 
-  const config = getGameConfig(level)
-
-  // Determine grid CSS class based on actual grid size needed
-  const getGridClass = () => {
-    if (config.gridSize <= 4) return "grid-cols-4"
-    if (config.gridSize <= 6) return "grid-cols-6"
-    if (config.gridSize <= 8) return "grid-cols-8"
-    return "grid-cols-9"
-  }
-
-  const gridCols = getGridClass()
   const isGameWon = matchedPairs === totalPairs && totalPairs > 0
   const isGameLost = timeLeft === 0 && !isGameWon && shuffleComplete && gameStarted
   const bestTimeForCurrentLevel = getBestTimeForLevel(level)
+
+  const getDifficultyLevel = () => {
+    if (level <= 3)
+      return {
+        name: "Beginner",
+        color: "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200",
+        icon: "🌱",
+      }
+    if (level <= 6)
+      return {
+        name: "Intermediate",
+        color: "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200",
+        icon: "🎯",
+      }
+    if (level <= 8)
+      return {
+        name: "Advanced",
+        color: "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200",
+        icon: "⚡",
+      }
+    if (level <= 11)
+      return {
+        name: "Expert",
+        color: "bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200",
+        icon: "🔥",
+      }
+    return {
+      name: "Master",
+      color: "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200",
+      icon: "💀",
+    }
+  }
 
   return (
     <div className="flex flex-col items-center justify-center w-full px-4 py-8 bg-background text-foreground min-h-screen">
@@ -368,6 +410,7 @@ export default function Component() {
               <Button onClick={() => initializeGame(level)}>Try Again</Button>
             )}
             <Leaderboard currentHighScore={highScore} />
+            <AnalyticsDashboard />
             <SocialShare
               shareData={{
                 level: highScore.highestLevel,
@@ -389,46 +432,10 @@ export default function Component() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              {(() => {
-                const getDifficultyLevel = () => {
-                  if (level <= 3)
-                    return {
-                      name: "Beginner",
-                      color: "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200",
-                      icon: "🌱",
-                    }
-                  if (level <= 6)
-                    return {
-                      name: "Intermediate",
-                      color: "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200",
-                      icon: "🎯",
-                    }
-                  if (level <= 8)
-                    return {
-                      name: "Advanced",
-                      color: "bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200",
-                      icon: "⚡",
-                    }
-                  if (level <= 11)
-                    return {
-                      name: "Expert",
-                      color: "bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200",
-                      icon: "🔥",
-                    }
-                  return {
-                    name: "Master",
-                    color: "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200",
-                    icon: "💀",
-                  }
-                }
-                const difficulty = getDifficultyLevel()
-                return (
-                  <>
-                    <span className="text-lg">{difficulty.icon}</span>
-                    <Badge className={`${difficulty.color} border-0 font-semibold text-xs`}>{difficulty.name}</Badge>
-                  </>
-                )
-              })()}
+              <span className="text-lg">{getDifficultyLevel().icon}</span>
+              <Badge className={`${getDifficultyLevel().color} border-0 font-semibold text-xs`}>
+                {getDifficultyLevel().name}
+              </Badge>
             </div>
           </div>
 
