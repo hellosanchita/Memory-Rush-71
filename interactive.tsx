@@ -12,6 +12,7 @@ import { Leaderboard } from "./components/leaderboard"
 import { CountdownProgress } from "./components/countdown-progress"
 import { FlipCard } from "./components/flip-card"
 import { SocialShare } from "./components/social-share"
+import { Confetti } from "./components/confetti"
 
 export default function Component() {
   const [level, setLevel] = useState(1)
@@ -25,6 +26,8 @@ export default function Component() {
   const [isShuffling, setIsShuffling] = useState(false)
   const [shuffleComplete, setShuffleComplete] = useState(false)
   const [isLevelTransition, setIsLevelTransition] = useState(false)
+  const [gameStarted, setGameStarted] = useState(false)
+  const [showConfetti, setShowConfetti] = useState(false)
 
   const { playSound, isMuted, toggleMute, initializeAudio } = useAudio()
 
@@ -107,10 +110,10 @@ export default function Component() {
   const getGameConfig = (currentLevel) => {
     const configs = {
       1: { gridSize: 4, timer: 60, pairs: 8 }, // 4×4 grid, 8 pairs, 60 seconds
-      2: { gridSize: 4, timer: 50, pairs: 12 }, // 4×4 grid, 12 pairs, 50 seconds
-      3: { gridSize: 6, timer: 45, pairs: 18 }, // 6×6 grid, 18 pairs, 45 seconds
-      4: { gridSize: 6, timer: 40, pairs: 24 }, // 6×6 grid, 24 pairs, 40 seconds
-      5: { gridSize: 6, timer: 35, pairs: 30 }, // 6×6 grid, 30 pairs, 35 seconds
+      2: { gridSize: 6, timer: 60, pairs: 12 }, // 6×4 grid (12 pairs), 60 seconds
+      3: { gridSize: 6, timer: 60, pairs: 18 }, // 6×6 grid, 18 pairs, 60 seconds
+      4: { gridSize: 6, timer: 60, pairs: 24 }, // 6×6 grid, 24 pairs, 60 seconds
+      5: { gridSize: 6, timer: 60, pairs: 30 }, // 6×6 grid, 30 pairs, 60 seconds
     }
     // For levels 5+, use the same config as level 5
     return configs[currentLevel] || configs[5]
@@ -119,6 +122,7 @@ export default function Component() {
   const initializeGame = useCallback((currentLevel) => {
     console.log("Initializing game for level", currentLevel)
     setIsLevelTransition(false) // Reset transition flag
+    setShowConfetti(false) // Reset confetti
     const config = getGameConfig(currentLevel)
     const availableEmojis = emojiSets[Math.min(currentLevel, 5)] || emojiSets[5]
     const selectedEmojis = availableEmojis.slice(0, config.pairs)
@@ -136,6 +140,7 @@ export default function Component() {
     setTotalPairs(config.pairs)
     setTimeLeft(config.timer)
     setWrongMatchCards([])
+    setGameStarted(false)
 
     // Start shuffle animation
     setIsShuffling(true)
@@ -164,17 +169,17 @@ export default function Component() {
 
   // Timer countdown (only when game is active and shuffle is complete)
   useEffect(() => {
-    if (gameActive && shuffleComplete && timeLeft > 0) {
+    if (gameActive && shuffleComplete && gameStarted && timeLeft > 0) {
       const timer = setTimeout(() => {
         setTimeLeft(timeLeft - 1)
       }, 1000)
       return () => clearTimeout(timer)
-    } else if (timeLeft === 0 && shuffleComplete) {
+    } else if (timeLeft === 0 && shuffleComplete && gameStarted) {
       setGameActive(false)
       playSound("gameOver")
       incrementGamesPlayed()
     }
-  }, [timeLeft, gameActive, shuffleComplete, playSound, incrementGamesPlayed])
+  }, [timeLeft, gameActive, shuffleComplete, gameStarted, playSound, incrementGamesPlayed])
 
   // Check for level completion
   useEffect(() => {
@@ -182,6 +187,9 @@ export default function Component() {
       setGameActive(false)
       setIsLevelTransition(true) // Prevent multiple level advances
       playSound("levelComplete")
+
+      // Trigger confetti celebration
+      setShowConfetti(true)
 
       // Update high scores - record the level that was just completed
       const config = getGameConfig(level)
@@ -225,6 +233,11 @@ export default function Component() {
       return
     }
 
+    // Start the game on first card click
+    if (!gameStarted) {
+      setGameStarted(true)
+    }
+
     const newSelectedCards = [...selectedCards, card]
     setSelectedCards(newSelectedCards)
 
@@ -265,11 +278,14 @@ export default function Component() {
   const config = getGameConfig(level)
   const gridCols = config.gridSize === 4 ? "grid-cols-4" : "grid-cols-6"
   const isGameWon = matchedPairs === totalPairs && totalPairs > 0
-  const isGameLost = timeLeft === 0 && !isGameWon && shuffleComplete
+  const isGameLost = timeLeft === 0 && !isGameWon && shuffleComplete && gameStarted
   const bestTimeForCurrentLevel = getBestTimeForLevel(level)
 
   return (
     <div className="flex flex-col items-center justify-center w-full px-4 py-8 bg-background text-foreground min-h-screen">
+      {/* Confetti Component */}
+      <Confetti active={showConfetti} onComplete={() => setShowConfetti(false)} />
+
       <Card className="w-full max-w-4xl">
         <CardHeader className="text-center">
           <div className="flex flex-col items-center gap-4">
@@ -305,7 +321,8 @@ export default function Component() {
           <div className="flex items-center justify-center gap-3 mb-4">
             <div className="text-center text-sm text-muted-foreground">
               <p className="font-medium">
-                Level {level}: {config.gridSize}×{config.gridSize} grid • {totalPairs} pairs • {config.timer}s timer
+                Level {level}: {level === 2 ? "6×4" : `${config.gridSize}×${config.gridSize}`} grid • {totalPairs} pairs
+                • {config.timer}s timer
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -412,10 +429,15 @@ export default function Component() {
                 <span className="text-blue-700 dark:text-blue-300 font-medium">Shuffling cards...</span>
               </div>
             )}
-            {!isShuffling && shuffleComplete && gameActive && (
+            {!isShuffling && shuffleComplete && gameActive && !gameStarted && (
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                <span className="text-blue-700 dark:text-blue-300 font-medium">Click any card to start the timer!</span>
+              </div>
+            )}
+            {!isShuffling && shuffleComplete && gameActive && gameStarted && (
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 dark:bg-green-900 rounded-lg">
                 <span className="text-green-700 dark:text-green-300 font-medium">
-                  Ready to play! Click cards to match pairs
+                  Game in progress! Match the pairs
                 </span>
               </div>
             )}
