@@ -1,0 +1,313 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 84% 4.9%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 94.1%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* 3D Flip Card Animations */
+.flip-card {
+  perspective: 1000px;
+  width: 100%;
+  height: 100%;
+}
+
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+}
+
+.flip-card.flipped .flip-card-inner {
+  transform: rotateY(180deg);
+}
+
+.flip-card-front,
+.flip-card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flip-card-front {
+  background: hsl(var(--primary) / 0.2);
+  border: 2px solid hsl(var(--border));
+}
+
+.flip-card-back {
+  background: hsl(var(--accent));
+  transform: rotateY(180deg);
+  border: 2px solid hsl(var(--primary) / 0.3);
+}
+
+.flip-card-matched .flip-card-back {
+  background: hsl(var(--primary) / 0.1);
+  border: 2px solid hsl(var(--primary) / 0.5);
+}
+
+.flip-card:hover .flip-card-front {
+  background: hsl(var(--primary) / 0.3);
+}
+
+/* Pulse animation for matched cards */
+.flip-card-matched {
+  animation: matchPulse 0.5s ease-in-out;
+}
+
+@keyframes matchPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Shake animation for wrong matches */
+.flip-card-wrong {
+  animation: wrongShake 0.5s ease-in-out;
+}
+
+@keyframes wrongShake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+/* Shuffle animations */
+.card-shuffle-enter {
+  opacity: 0;
+  transform: translateY(-100px) rotateZ(180deg) scale(0.5);
+}
+
+.card-shuffle-enter-active {
+  opacity: 1;
+  transform: translateY(0) rotateZ(0deg) scale(1);
+  transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Staggered entrance animations */
+.shuffle-delay-0 {
+  animation-delay: 0ms;
+}
+.shuffle-delay-1 {
+  animation-delay: 100ms;
+}
+.shuffle-delay-2 {
+  animation-delay: 200ms;
+}
+.shuffle-delay-3 {
+  animation-delay: 300ms;
+}
+.shuffle-delay-4 {
+  animation-delay: 400ms;
+}
+.shuffle-delay-5 {
+  animation-delay: 500ms;
+}
+.shuffle-delay-6 {
+  animation-delay: 600ms;
+}
+.shuffle-delay-7 {
+  animation-delay: 700ms;
+}
+.shuffle-delay-8 {
+  animation-delay: 800ms;
+}
+.shuffle-delay-9 {
+  animation-delay: 900ms;
+}
+.shuffle-delay-10 {
+  animation-delay: 1000ms;
+}
+.shuffle-delay-11 {
+  animation-delay: 1100ms;
+}
+.shuffle-delay-12 {
+  animation-delay: 1200ms;
+}
+.shuffle-delay-13 {
+  animation-delay: 1300ms;
+}
+.shuffle-delay-14 {
+  animation-delay: 1400ms;
+}
+.shuffle-delay-15 {
+  animation-delay: 1500ms;
+}
+.shuffle-delay-16 {
+  animation-delay: 1600ms;
+}
+.shuffle-delay-17 {
+  animation-delay: 1700ms;
+}
+.shuffle-delay-18 {
+  animation-delay: 1800ms;
+}
+.shuffle-delay-19 {
+  animation-delay: 1900ms;
+}
+.shuffle-delay-20 {
+  animation-delay: 2000ms;
+}
+.shuffle-delay-21 {
+  animation-delay: 2100ms;
+}
+.shuffle-delay-22 {
+  animation-delay: 2200ms;
+}
+.shuffle-delay-23 {
+  animation-delay: 2300ms;
+}
+.shuffle-delay-24 {
+  animation-delay: 2400ms;
+}
+.shuffle-delay-25 {
+  animation-delay: 2500ms;
+}
+.shuffle-delay-26 {
+  animation-delay: 2600ms;
+}
+.shuffle-delay-27 {
+  animation-delay: 2700ms;
+}
+.shuffle-delay-28 {
+  animation-delay: 2800ms;
+}
+.shuffle-delay-29 {
+  animation-delay: 2900ms;
+}
+.shuffle-delay-30 {
+  animation-delay: 3000ms;
+}
+
+@keyframes shuffleIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-100px) rotateZ(180deg) scale(0.5);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) rotateZ(0deg) scale(1);
+  }
+}
+
+.card-shuffle-animation {
+  animation: shuffleIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  opacity: 0;
+}
+
+/* Grid fade-in animation */
+.grid-fade-in {
+  animation: gridFadeIn 0.5s ease-out forwards;
+}
+
+@keyframes gridFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Level transition animation */
+.level-transition {
+  animation: levelTransition 1s ease-in-out;
+}
+
+@keyframes levelTransition {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
